@@ -12,7 +12,14 @@ function DashboardContent() {
       <p>Welcome back, {user?.name}</p>
       <p>Role: {user?.role}</p>
       <p>Email: {user?.email}</p>
-
+      <div style={{ marginTop: "24px" }}>
+        <h2>Navigation</h2>
+        <ul>
+          <li>
+            <a href="/employees">Employees</a>
+          </li>
+        </ul>
+      </div>
       {/* only admins see this */}
       {user?.role === "admin" && (
         <div style={{ border: "1px solid red", padding: "12px", marginTop: "16px" }}>

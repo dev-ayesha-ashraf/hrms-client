@@ -50,3 +50,40 @@ export async function getCurrentUser() {
 export function logoutUser() {
   Cookies.remove("token");
 }
+
+// ── helper — every protected request needs this header ──
+function authHeaders() {
+  const token = Cookies.get("token");
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+// ── EMPLOYEE API CALLS ───────────────────────────────────
+
+export async function getEmployees() {
+  const response = await fetch(`${BASE_URL}/employees/`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error("Failed to fetch employees");
+  return response.json();
+}
+
+export async function getEmployee(id: number) {
+  const response = await fetch(`${BASE_URL}/employees/${id}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error("Employee not found");
+  return response.json();
+}
+
+export async function deleteEmployee(id: number) {
+  const response = await fetch(`${BASE_URL}/employees/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error("Failed to delete employee");
+  // 204 means no response body — just return true
+  return true;
+}
