@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import AppShell from "@/components/AppShell";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -42,6 +43,6 @@ export default function ProtectedRoute({
   // r doesn't have it
   if (allowedRoles && !allowedRoles.includes(user.role)) return null;
 
-  // all good — render the page
-  return <>{children}</>;
+  // all good — render protected page inside shared app shell
+  return <AppShell>{children}</AppShell>;
 }

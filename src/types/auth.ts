@@ -32,5 +32,89 @@ export interface Employee {
   hire_date: string;
   salary: number;
   status: "active" | "inactive" | "on_leave";
+  avatar_url: string | null;            // ← add this
+  created_at: string;
+}
+
+export interface DepartmentFull {
+  id: number;
+  name: string;
+  description: string | null;
+  employee_count: number;     // ← add this
+}
+
+export type LeaveType =
+  | "annual"
+  | "sick"
+  | "unpaid"
+  | "maternity"
+  | "paternity"
+  | "emergency";
+
+export type LeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export interface LeaveRequest {
+  id: number;
+  employee: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    job_title: string;
+  };
+  leave_type: LeaveType;
+  from_date: string;
+  to_date: string;
+  reason: string | null;
+  status: LeaveStatus;
+  reviewed_by: { id: number; name: string } | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+  total_days: number;
+}
+
+export interface AttendanceRecord {
+  id: number;
+  employee: {
+    id: number;
+    first_name: string;
+    last_name: string;
+  };
+  date: string;
+  clock_in: string;
+  clock_out: string | null;
+  hours_worked: number | null;
+  note: string | null;
+}
+
+export interface AttendanceStatus {
+  is_clocked_in: boolean;
+  record: AttendanceRecord | null;
+}
+
+export interface PayrollRecord {
+  id: number;
+  employee: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    job_title: string;
+  };
+  month: number;
+  year: number;
+  base_salary: number;
+  overtime_bonus: number;
+  performance_bonus: number;
+  gross_salary: number;
+  income_tax: number;
+  social_security: number;
+  total_deductions: number;
+  net_pay: number;
+  days_present: number;
+  days_absent: number;
+  overtime_hours: number;
+  is_paid: boolean;
+  paid_at: string | null;
+  notes: string | null;
   created_at: string;
 }
