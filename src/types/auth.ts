@@ -118,3 +118,14 @@ export interface PayrollRecord {
   notes: string | null;
   created_at: string;
 }
+
+export interface AppNotification {
+  id: number;
+  title: string;
+  message: string;
+  type: "info" | "success" | "warning" | "error";
+  link: string | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}

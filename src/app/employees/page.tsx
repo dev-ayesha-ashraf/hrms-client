@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getEmployees, deleteEmployee } from "@/lib/api";
+import { getEmployees, deleteEmployee, exportEmployeesCSV } from "@/lib/api";
 import { Employee } from "@/types/auth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useRole } from "@/hooks/useAuth";
+import { PageLoader, ErrorBanner } from "@/components/ui";
+import { useToast } from "@/context/ToastContext";
 
 interface EmployeeListPayload {
   items: Employee[];
@@ -62,9 +64,11 @@ function EmployeeListContent() {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [exporting, setExporting] = useState(false);
 
   const router = useRouter();
   const { isAdmin, isAdminOrHR } = useRole();
+  const toast = useToast();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -114,21 +118,22 @@ function EmployeeListContent() {
 
     try {
       await deleteEmployee(id);
+      toast.success("Employee deleted.");
       if (employees.length === 1 && page > 1) {
         setPage((prev) => prev - 1);
       } else {
         setRefreshKey((prev) => prev + 1);
       }
     } catch (err: unknown) {
-      alert("Failed to delete: " + getErrorMessage(err));
+      toast.error("Failed to delete: " + (err instanceof Error ? err.message : "Unknown error"));
     } finally {
       setDeletingId(null);
     }
   }
 
   // ── render states ────────────────────────────────────────
-  if (loading) return <p>Loading employees...</p>;
-  if (error) return <div className="app-page"><p className="form-error">Error: {error}</p></div>;
+  if (loading) return <PageLoader label="Loading employees…" />;
+  if (error) return <div className="app-page"><ErrorBanner message={error} onRetry={() => setRefreshKey((k) => k + 1)} /></div>;
 
   return (
     <div className="app-page app-stack">
@@ -142,9 +147,22 @@ function EmployeeListContent() {
         </div>
 
         {isAdminOrHR && (
-          <button className="app-button" onClick={() => router.push("/employees/new")}>
-            + Add Employee
-          </button>
+          <div className="app-toolbar">
+            <button
+              className="app-button-ghost"
+              onClick={async () => {
+                setExporting(true);
+                try { await exportEmployeesCSV(); }
+                finally { setExporting(false); }
+              }}
+              disabled={exporting}
+            >
+              {exporting ? "Exporting..." : "Export CSV"}
+            </button>
+            <button className="app-button" onClick={() => router.push("/employees/new")}>
+              + Add Employee
+            </button>
+          </div>
         )}
       </div>
 

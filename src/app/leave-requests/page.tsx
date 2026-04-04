@@ -7,6 +7,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import LeaveRequestForm from "@/components/LeaveRequestForm";
 import LeaveReviewModal from "@/components/LeaveReviewModal";
 import { useRole, useAuth } from "@/hooks/useAuth";
+import { PageLoader, ErrorBanner, EmptyState } from "@/components/ui";
+import { useToast } from "@/context/ToastContext";
 
 function LeaveRequestsContent() {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -21,6 +23,7 @@ function LeaveRequestsContent() {
 
   const { isAdminOrHR } = useRole();
   const { user } = useAuth();
+  const toast = useToast();
 
   useEffect(() => {
     fetchRequests();
@@ -31,7 +34,7 @@ function LeaveRequestsContent() {
       const data = await getLeaveRequests();
       setRequests(data);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message ?? "Failed to load leave requests");
     } finally {
       setLoading(false);
     }
@@ -40,7 +43,8 @@ function LeaveRequestsContent() {
   // after form submits successfully
   function handleFormSuccess() {
     setShowForm(false);
-    fetchRequests();  // re-fetch to show the new request
+    fetchRequests();
+    toast.success("Leave request submitted.");
   }
 
   // after HR approves or rejects
@@ -62,8 +66,9 @@ function LeaveRequestsContent() {
       setRequests((prev) =>
         prev.map((r) => (r.id === updated.id ? updated : r))
       );
+      toast.success("Leave request cancelled.");
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setCancellingId(null);
     }
@@ -75,8 +80,8 @@ function LeaveRequestsContent() {
       ? requests
       : requests.filter((r) => r.status === statusFilter);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <div className="app-page"><p className="form-error">{error}</p></div>;
+  if (loading) return <PageLoader label="Loading leave requests…" />;
+  if (error) return <div className="app-page"><ErrorBanner message={error} onRetry={fetchRequests} /></div>;
 
   return (
     <div className="app-page app-stack">
@@ -130,11 +135,11 @@ function LeaveRequestsContent() {
       )}
 
       {filtered.length === 0 && (
-        <div className="empty-state">
-          {statusFilter === "all"
-            ? "No leave requests yet."
-            : `No ${statusFilter} requests.`}
-        </div>
+        <EmptyState
+          icon="📝"
+          title={statusFilter === "all" ? "No leave requests yet" : `No ${statusFilter} requests`}
+          description={!isAdminOrHR && statusFilter === "all" ? "Submit a leave request using the button above." : undefined}
+        />
       )}
 
       {filtered.length > 0 && (

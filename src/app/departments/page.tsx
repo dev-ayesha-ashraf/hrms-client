@@ -10,6 +10,8 @@ import {
 import { DepartmentFull } from "@/types/auth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useRole } from "@/hooks/useAuth";
+import { PageLoader, ErrorBanner, EmptyState } from "@/components/ui";
+import { useToast } from "@/context/ToastContext";
 
 function DepartmentsContent() {
   const [departments, setDepartments] = useState<DepartmentFull[]>([]);
@@ -33,6 +35,7 @@ function DepartmentsContent() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const { isAdmin, isAdminOrHR } = useRole();
+  const toast = useToast();
 
   useEffect(() => {
     fetchDepartments();
@@ -43,7 +46,7 @@ function DepartmentsContent() {
       const data = await getDepartments();
       setDepartments(data);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message ?? "Failed to load departments");
     } finally {
       setLoading(false);
     }
@@ -67,6 +70,7 @@ function DepartmentsContent() {
       setNewName("");
       setNewDesc("");
       setShowAddForm(false);
+      toast.success(`Department "${created.name}" created.`);
     } catch (err: any) {
       setAddError(err.message);
     } finally {
@@ -101,8 +105,9 @@ function DepartmentsContent() {
         prev.map((d) => (d.id === id ? updated : d))
       );
       cancelEdit();
+      toast.success("Department updated.");
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -116,16 +121,16 @@ function DepartmentsContent() {
     try {
       await deleteDepartment(id);
       setDepartments((prev) => prev.filter((d) => d.id !== id));
+      toast.success("Department deleted.");
     } catch (err: any) {
-      // show the "has employees" error clearly
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setDeletingId(null);
     }
   }
 
-  if (loading) return <p>Loading departments...</p>;
-  if (error) return <div className="app-page"><p className="form-error">{error}</p></div>;
+  if (loading) return <PageLoader label="Loading departments…" />;
+  if (error) return <div className="app-page"><ErrorBanner message={error} onRetry={fetchDepartments} /></div>;
 
   return (
     <div className="app-page app-stack">
@@ -190,7 +195,7 @@ function DepartmentsContent() {
       )}
 
       {departments.length === 0 ? (
-        <div className="empty-state">No departments yet.</div>
+        <EmptyState icon="🏢" title="No departments yet" description="Create your first department to start organising your workforce." />
       ) : (
         <div className="table-shell">
           <div className="table-scroll">

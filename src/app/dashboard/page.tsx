@@ -6,17 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { getAllAttendance, getDashboardStats, getDepartments, getEmployees } from "@/lib/api";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+  Bar, BarChart, CartesianGrid, Cell, Pie, PieChart,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { ErrorBanner } from "@/components/ui";
 
 interface DashboardStats {
   total_employees: number;
@@ -110,15 +103,16 @@ function DashboardContent() {
       setError("");
 
       try {
-        const [statsResponse, departments, employees] = await Promise.all([
+        const [statsResponse, departments, empsResponse] = await Promise.all([
           getDashboardStats(),
           getDepartments(),
-          getEmployees(),
+          getEmployees({ limit: 1000 }),
         ]);
 
         setStats(statsResponse);
 
-        const activeEmployees = employees.filter((employee: { status: string }) => employee.status === "active");
+        const allEmps = Array.isArray(empsResponse) ? empsResponse : (empsResponse.data ?? []);
+        const activeEmployees = allEmps.filter((employee: { status: string }) => employee.status === "active");
         const monthlySlices = getRecentMonths(6);
 
         const monthlyAttendance = await Promise.all(
@@ -190,6 +184,14 @@ function DashboardContent() {
       maximumFractionDigits: 2,
     }).format(stats?.total_payroll_this_month ?? 0);
   }, [stats]);
+
+  if (error) {
+    return (
+      <div className="app-page">
+        <ErrorBanner message={error} onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
 
   return (
     <div className="app-page app-stack">

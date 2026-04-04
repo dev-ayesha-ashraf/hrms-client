@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllAttendance, getEmployees } from "@/lib/api";
+import { getAllAttendance, getEmployees, exportAttendanceCSV } from "@/lib/api";
 import { AttendanceRecord, Employee } from "@/types/auth";
 
 export default function AttendanceCalendar() {
@@ -11,15 +11,17 @@ export default function AttendanceCalendar() {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
       getAllAttendance(month, year),
-      getEmployees(),
+      getEmployees({ limit: 1000 }),
     ])
-      .then(([attendanceData, employeeData]) => {
+      .then(([attendanceData, employeeResponse]) => {
         setRecords(attendanceData);
+        const employeeData: Employee[] = employeeResponse.data ?? employeeResponse;
         setEmployees(employeeData.filter((e: Employee) => e.status === "active"));
       })
       .finally(() => setLoading(false));
@@ -76,6 +78,17 @@ export default function AttendanceCalendar() {
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
+        <button
+          className="app-button-ghost"
+          onClick={async () => {
+            setExporting(true);
+            try { await exportAttendanceCSV(month, year); }
+            finally { setExporting(false); }
+          }}
+          disabled={exporting}
+        >
+          {exporting ? "Exporting..." : "Export CSV"}
+        </button>
       </div>
 
       <div className="app-toolbar muted-text" style={{ fontSize: "12px" }}>

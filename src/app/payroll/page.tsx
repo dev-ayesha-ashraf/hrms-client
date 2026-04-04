@@ -9,10 +9,13 @@ import {
   generatePayrollForEmployee,
   generateBulkPayroll,
   markPayrollPaid,
+  exportPayrollCSV,
 } from "@/lib/api";
 import { PayrollRecord, Employee } from "@/types/auth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useRole } from "@/hooks/useAuth";
+import { PageLoader, SectionLoader, EmptyState } from "@/components/ui";
+import { useToast } from "@/context/ToastContext";
 
 // month names helper
 const MONTHS = [
@@ -32,7 +35,9 @@ function HRPayrollView() {
   const [generating, setGenerating] = useState(false);
   const [generatingId, setGeneratingId] = useState<number | null>(null);
   const [markingPaidId, setMarkingPaidId] = useState<number | null>(null);
+  const [exporting, setExporting] = useState(false);
   const { isAdmin } = useRole();
+  const toast = useToast();
 
   useEffect(() => {
     fetchData();
@@ -41,11 +46,12 @@ function HRPayrollView() {
   async function fetchData() {
     setLoading(true);
     try {
-      const [payroll, emps] = await Promise.all([
+      const [payroll, empsResponse] = await Promise.all([
         getPayrollList(month, year),
-        getEmployees(),
+        getEmployees({ limit: 1000 }),
       ]);
       setPayrollRecords(payroll);
+      const emps: Employee[] = empsResponse.data ?? empsResponse;
       setEmployees(emps.filter((e: Employee) => e.status === "active"));
     } catch (err: any) {
       console.error(err);
@@ -66,7 +72,7 @@ function HRPayrollView() {
       await generatePayrollForEmployee(employeeId, { month, year });
       await fetchData();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setGeneratingId(null);
     }
@@ -83,8 +89,9 @@ function HRPayrollView() {
     try {
       await generateBulkPayroll(month, year);
       await fetchData();
+      toast.success("Bulk payroll generated.");
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setGenerating(false);
     }
@@ -97,8 +104,9 @@ function HRPayrollView() {
       setPayrollRecords((prev) =>
         prev.map((p) => (p.id === payrollId ? updated : p))
       );
+      toast.success("Marked as paid.");
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setMarkingPaidId(null);
     }
@@ -139,6 +147,17 @@ function HRPayrollView() {
           >
             {generating ? "Generating..." : "Generate All"}
           </button>
+          <button
+            className="app-button-ghost"
+            onClick={async () => {
+              setExporting(true);
+              try { await exportPayrollCSV(month, year); }
+              finally { setExporting(false); }
+            }}
+            disabled={exporting}
+          >
+            {exporting ? "Exporting..." : "Export CSV"}
+          </button>
         </div>
       </div>
 
@@ -154,7 +173,9 @@ function HRPayrollView() {
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <SectionLoader />
+      ) : employees.length === 0 ? (
+        <EmptyState icon="💰" title="No active employees" description="Add employees before generating payroll." />
       ) : (
         <div className="table-shell">
           <div className="table-scroll">
@@ -261,14 +282,18 @@ function EmployeePayslipList() {
   const router = useRouter();
   const [payslips, setPayslips] = useState<PayrollRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const toast = useToast();
 
   useEffect(() => {
     getMyPayslips()
       .then(setPayslips)
+      .catch((err: any) => setError(err.message ?? "Failed to load payslips"))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p>Loading payslips...</p>;
+  if (loading) return <PageLoader label="Loading payslips…" />;
+  if (error) return <div className="app-page" style={{ padding: "40px" }}><p style={{ color: "#c73b57" }}>{error}</p></div>;
 
   return (
     <div className="app-page app-stack">
@@ -278,9 +303,7 @@ function EmployeePayslipList() {
         <p className="app-subtitle">Review your payroll history, payment state, and monthly totals in a cleaner layout.</p>
       </div>
       {payslips.length === 0 ? (
-        <div className="empty-state">
-          No payslips yet. Contact HR if you think this is an error.
-        </div>
+        <EmptyState icon="💳" title="No payslips yet" description="Contact HR if you think this is an error." />
       ) : (
         <div className="table-shell">
           <div className="table-scroll">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "./NotificationBell";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -68,6 +69,9 @@ export default function AppShell({ children }: AppShellProps) {
             <p>HR Solutions</p>
             <span>Operations</span>
           </div>
+          <div style={{ marginLeft: "auto" }}>
+            <NotificationBell />
+          </div>
         </div>
 
         <nav className="app-sidebar-nav" aria-label="Primary">
@@ -109,6 +113,7 @@ export default function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="app-user-panel">
+            <NotificationBell />
             <div className="app-user-meta">
               <p>{user?.name}</p>
               <span>{user?.role}</span>
